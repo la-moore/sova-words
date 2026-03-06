@@ -1,0 +1,49 @@
+{
+  "name": "@pixme/canvas",
+  "version": "0.0.0",
+  "description": "canvas",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "author": "moorlex",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./loaders": {
+      "types": "./dist/loaders.d.ts",
+      "import": "./dist/loaders.js",
+      "require": "./dist/loaders.cjs"
+    },
+    "./controls": {
+      "types": "./dist/controls.d.ts",
+      "import": "./dist/controls.js",
+      "require": "./dist/controls.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && rollup -c",
+    "dev": "rollup -c -w"
+  },
+  "peerDependencies": {},
+  "dependencies": {},
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.3",
+    "@rollup/plugin-node-resolve": "^16.0.0",
+    "@rollup/plugin-typescript": "^12.1.4",
+    "eslint": "^9.39.1",
+    "prettier": "^3.7.4",
+    "rollup": "^4.40.0",
+    "rollup-plugin-dts": "^6.2.3",
+    "tslib": "^2.8.1",
+    "typescript": "^5.9.3",
+    "@types/node": "^22.19.1"
+  }
+}

@@ -4,8 +4,3 @@ node_modules
 tscompiled
 *.local
 dist
-
-.env
-.env.production
-
-public/tailwind.css

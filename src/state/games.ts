@@ -1,18 +1,22 @@
-import { reactive, readonly, toRef } from 'vue'
+import { reactive, toRef } from 'vue'
 
-interface stateInterface {
-  list: {
-    id: number
-    name: string
-    description: string
-    color: string
-    contrast: string
-    background: string
-    wordsLength: number
-  }[]
+interface GameI {
+  id: number
+  name: string
+  description: string
+  color: string
+  contrast: string
+  background: string
+  image: string
+  card: string
+  wordsLength: number
 }
 
-const state: stateInterface = reactive({
+interface StateI {
+  list: GameI[]
+}
+
+const state = reactive<StateI>({
   list: [
     {
       id: 1,
@@ -22,6 +26,8 @@ const state: stateInterface = reactive({
       contrast: '#D78095',
       background: '#121529',
       wordsLength: 3,
+      image: new URL('~/assets/1/background.svg', import.meta.url).href,
+      card: new URL('~/assets/1/card.svg', import.meta.url).href,
     },
     {
       id: 2,
@@ -31,6 +37,8 @@ const state: stateInterface = reactive({
       contrast: '#A2C62A',
       background: '#070F0C',
       wordsLength: 4,
+      image: new URL('~/assets/2/background.svg', import.meta.url).href,
+      card: new URL('~/assets/2/card.svg', import.meta.url).href,
     },
     {
       id: 3,
@@ -40,6 +48,8 @@ const state: stateInterface = reactive({
       contrast: '#EBF6FA',
       background: '#041112',
       wordsLength: 5,
+      image: new URL('~/assets/3/background.svg', import.meta.url).href,
+      card: new URL('~/assets/3/card.svg', import.meta.url).href,
     },
     {
       id: 4,
@@ -49,6 +59,8 @@ const state: stateInterface = reactive({
       contrast: '#98AD9E',
       background: '#0D0607',
       wordsLength: 6,
+      image: new URL('~/assets/4/background.svg', import.meta.url).href,
+      card: new URL('~/assets/4/card.svg', import.meta.url).href,
     },
     {
       id: 5,
@@ -58,12 +70,14 @@ const state: stateInterface = reactive({
       contrast: '#FAC119',
       background: '#110C07',
       wordsLength: 7,
+      image: new URL('~/assets/5/background.svg', import.meta.url).href,
+      card: new URL('~/assets/5/card.svg', import.meta.url).href,
     },
   ]
 })
 
 export function useGames() {
   return {
-    list: readonly(toRef(state, 'list')),
+    list: toRef(state, 'list'),
   }
 }

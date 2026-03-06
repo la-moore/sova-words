@@ -1,4 +1,4 @@
-import { RouteRecordRaw } from 'vue-router'
+import { type RouteRecordRaw } from 'vue-router'
 
 interface RouterProps {
   params: {
@@ -9,13 +9,13 @@ interface RouterProps {
 export default [
   {
     path: '/',
-    component: () => import('../layouts/main/main.vue'),
+    component: () => import('../layouts/main.vue'),
     redirect: { name: 'home' },
     children: [
       {
         path: '',
         name: 'home',
-        component: () => import('../views/home/home-view.vue'),
+        component: () => import('../views/home-view.vue'),
         meta: {
           title: 'Сова'
         }
@@ -23,7 +23,7 @@ export default [
       {
         path: '/game/:id',
         name: 'game',
-        component: () => import('../views/game/game-view.vue'),
+        component: () => import('../views/game-view.vue'),
         props: ({ params }: RouterProps) => ({
           id: parseInt(params.id),
         }),
@@ -36,6 +36,9 @@ export default [
   {
     path: '/:catchAll(.*)?',
     name: '404',
-    component: () => import('../views/errors/not-found.vue')
+    component: () => import('../views/not-found.vue'),
+    meta: {
+      title: 'Ошибка'
+    }
   }
 ] as RouteRecordRaw[]

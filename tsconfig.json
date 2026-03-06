@@ -1,37 +1,7 @@
 {
-  "compilerOptions": {
-    "target": "es2020",
-    "module": "esnext",
-    "moduleResolution": "node",
-    "removeComments": true,
-    "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "noImplicitAny": false,
-    "strict": true,
-    "strictNullChecks": false,
-    "baseUrl": "./",
-    "paths": {
-      "/~/*": ["src/*"],
-      "/-/*": ["node_modules/@la-moore/shared/*"],
-      "vue": ["node_modules/vue"]
-    },
-    "types": ["vite/client"],
-    "outDir": "./tscompiled/"
-  },
-  "include": [
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ],
-  "files": [
-    "./node_modules/client-core/types/shims.d.ts",
-    "./types/import-meta.d.ts"
-  ],
-  "lib": [
-    "es2020"
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
   ]
 }
