@@ -4,7 +4,9 @@
   "scripts": {
     "dev": "vite",
     "host": "vite --host",
-    "build": "vite build"
+    "build": "vite build",
+    "prod": "npm run build:canvas && npm run build",
+    "build:canvas": "npm run build -w @pixme/canvas"
   },
   "dependencies": {
     "@scarlab-icons/vue": "^2.0.3",
