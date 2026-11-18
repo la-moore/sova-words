@@ -1,35 +1,29 @@
 {
   "name": "sova-words",
-  "version": "1.0.0",
+  "private": true,
+  "version": "2.0.0",
   "author": "moorlex",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "host": "vite --host",
-    "build": "vite build",
-    "prod": "npm run build:canvas && npm run build",
-    "build:canvas": "npm run build -w @pixme/canvas"
+    "dev": "vite --host",
+    "build": "npm run typecheck && vite build",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@scarlab-icons/vue": "^2.0.3",
-    "animejs": "^3.2.1",
-    "vue": "^3.5.25",
-    "vue-router": "^5.0.3",
-    "@pixme/canvas": "0.0.0"
+    "@cynfas/core": "^0.1.0",
+    "@scarlab-icons/icons": "^3.1.0",
+    "vue": "^3.5.45",
+    "vue-router": "^4.6.5"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
-    "@types/animejs": "^3.1.13",
-    "@vitejs/plugin-vue": "^6.0.2",
-    "@vue/tsconfig": "^0.8.1",
-    "@tailwindcss/vite": "^4.1.13",
-    "vue-final-modal": "^4.5.5",
-    "tailwindcss": "^4.1.13",
+    "@types/node": "^26.6.6",
+    "@vitejs/plugin-vue": "^6.0.11",
+    "happy-dom": "^16.0.0",
     "typescript": "~5.9.3",
-    "vite": "^7.3.1",
-    "vue-tsc": "^3.1.5"
-  },
-  "workspaces": [
-    "packages/*"
-  ]
+    "vite": "^8.0.1",
+    "vitest": "^3.0.0",
+    "vue-tsc": "^3.3.14"
+  }
 }

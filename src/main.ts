@@ -1,9 +1,15 @@
 import { createApp } from 'vue'
+import { createWebHashHistory } from 'vue-router'
 import App from './App.vue'
-import router from './router'
-import './index.css'
+import Home from './Home.vue'
+import { createGameRouter } from './routes'
+import './style.css'
 
-const app = createApp(App)
+const router = createGameRouter(createWebHashHistory(), Home)
+createApp(App).use(router).mount('#site')
 
-app.use(router)
-app.mount('#app')
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(error => {
+    console.warn('Could not enable offline play', error)
+  })
+}
