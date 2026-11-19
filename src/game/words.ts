@@ -6,7 +6,10 @@ export const DIFFICULTIES = [
 
 export interface Level {
   base: string
+  /** Common words: they make the goal, the progress and the missed-words list. */
   words: string[]
+  /** Rare words: accepted as answers, but only ever count as a bonus. */
+  extra: string[]
 }
 
 export const NEW_YEAR_WORDS = [
@@ -58,20 +61,23 @@ export const THEMED_MODES = [
   },
 ] as const
 
-let dictionary: { set: Set<string>; words: string[] } | undefined
+/** Built by scripts/words/build.py: `words` are common nouns, `extra` are rare ones. */
+let dictionary: { words: string[]; extra: string[] } | undefined
 let loading: Promise<NonNullable<typeof dictionary>> | undefined
 
 export function normalize(word: string): string {
   return word.trim().toUpperCase().replaceAll('Ё', 'Е')
 }
 
+function prepare(raw: string[], skip?: ReadonlySet<string>): string[] {
+  return [...new Set(raw.map(normalize))].filter(word => /^[А-Я]{3,}$/.test(word) && !skip?.has(word))
+}
+
 export function loadDictionary() {
-  return loading ??= Promise.all([import('./words.json'), import('./blocklist.json')])
-    .then(([{ default: raw }, { default: blocked }]) => {
-      const exclusions = new Set<string>(blocked.map(normalize))
-      const words = [...new Set(raw.map(normalize))]
-        .filter(word => /^[А-Я]{3,}$/.test(word) && !exclusions.has(word))
-      return dictionary = { set: new Set(words), words }
+  return loading ??= Promise.all([import('./words.json'), import('./words-extra.json')])
+    .then(([{ default: common }, { default: rare }]) => {
+      const words = prepare(common)
+      return dictionary = { words, extra: prepare(rare, new Set(words)) }
     })
     .catch(error => {
       loading = undefined
@@ -97,7 +103,8 @@ export function fits(word: string, counts: Uint8Array): boolean {
 export function levelFromWord(base: string): Level {
   if (!dictionary) throw new Error('Dictionary is unavailable')
   const counts = letterCounts(base)
-  return { base, words: dictionary.words.filter(word => word.length <= base.length && fits(word, counts)) }
+  const playable = (word: string) => word.length <= base.length && fits(word, counts)
+  return { base, words: dictionary.words.filter(playable), extra: dictionary.extra.filter(playable) }
 }
 
 export function generateLevel(length: number, used: ReadonlySet<string>, random = Math.random, previous?: string): Level {

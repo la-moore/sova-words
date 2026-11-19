@@ -214,6 +214,31 @@ it('checks words, charges for hints, and advances a regular run without reusing 
   }
 })
 
+it('accepts rare words as a bonus that does not count towards the goal', async () => {
+  await loadDictionary()
+  const level = generateLevel(5, new Set(), () => 0)
+  expect(level.extra.length).toBeGreaterThan(0)
+  const random = vi.spyOn(Math, 'random').mockReturnValue(0)
+  try {
+    startGame()
+    void game.begin(0)
+    await vi.waitFor(() => expect(labels(app!.scene)).toContain('Лёгкая · Ур. 1'))
+    const submit = (word: string) => {
+      for (const letter of word) key(letter)
+      key('Enter')
+    }
+    submit(level.extra[0])
+    expect(labels(app!.scene).some(text => text.startsWith('Редкое слово!'))).toBe(true)
+    expect(labels(app!.scene)).toContain(level.extra[0])
+    for (const word of level.words.slice(0, 4)) submit(word)
+    expect(labels(app!.scene)).not.toContain('Дальше')
+    submit(level.words[4])
+    expect(labels(app!.scene)).toContain('Дальше')
+  } finally {
+    random.mockRestore()
+  }
+})
+
 it('fills a partial word on hint and awards points for the manually entered letter', async () => {
   const app = startGame()
   void game.begin(1, localDate())

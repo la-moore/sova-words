@@ -52,6 +52,7 @@ export class AnagramGame {
   private particleTime = 0
   private level!: Level
   private valid = new Set<string>()
+  private common = new Set<string>()
   private golden = new Set<string>()
   private found = new Set<string>()
   private score = 0
@@ -235,8 +236,10 @@ export class AnagramGame {
 
   private get settings() { return DIFFICULTIES[this.difficulty] }
   private get goal(): number { return Math.min(this.settings.goal, this.level.words.length) }
-  private get canAdvance(): boolean { return this.found.size >= this.goal }
-  private get perfect(): boolean { return this.found.size === this.level.words.length }
+  /** Found words that count towards the goal: rare ones are a bonus only. */
+  private get foundCommon(): string[] { return [...this.found].filter(word => this.common.has(word)) }
+  private get canAdvance(): boolean { return this.foundCommon.length >= this.goal }
+  private get perfect(): boolean { return this.foundCommon.length === this.level.words.length }
 
   goToMenu(): void { this.onMenu() }
 
@@ -271,7 +274,8 @@ export class AnagramGame {
       this.level = generateLevel(this.settings.length, used, rng, this.date ? undefined : this.level?.base)
       used.add(this.level.base)
     }
-    this.valid = new Set(this.level.words)
+    this.common = new Set(this.level.words)
+    this.valid = new Set([...this.level.words, ...this.level.extra])
     this.code = challenge?.code ?? encodeSeed(this.date ? { day: dailyNumber(this.date) } : {
       mode: this.themedMode ? themeMode(this.themedMode.palette) : this.difficulty, base: this.level.base,
     })
@@ -404,7 +408,8 @@ export class AnagramGame {
     })
     let index = 0
     for (const word of this.found) {
-      this.chips.set(word, new WordChip(word, index++ >= this.goal, this.golden.has(word)))
+      const bonus = !this.common.has(word) || index++ >= this.goal
+      this.chips.set(word, new WordChip(word, bonus, this.golden.has(word)))
     }
     this.layoutChips()
   }
@@ -542,7 +547,8 @@ export class AnagramGame {
     const now = Date.now()
     this.comboIndex = now < this.comboUntil ? Math.min(this.comboIndex + 1, 3) : 0
     this.comboUntil = now + COMBO_MS
-    const bonus = this.canAdvance
+    const rare = !this.common.has(word)
+    const bonus = this.canAdvance || rare
     const golden = this.golden.has(word)
     const base = word === this.level.base
     const special = base || word.length >= 6
@@ -551,7 +557,8 @@ export class AnagramGame {
     const points = Math.floor(fullPoints * typedLetters / word.length)
     this.found.add(word)
     if (this.hint?.word === word) this.hint = undefined
-    const earned = points + (this.perfect ? 100 : 0)
+    const perfect = !rare && this.perfect
+    const earned = points + (perfect ? 100 : 0)
     this.score += earned
     this.levelScore += earned
     this.bestCombo = Math.max(this.bestCombo, COMBO_MULTIPLIERS[this.comboIndex])
@@ -562,7 +569,7 @@ export class AnagramGame {
     const achievements = loadAchievements(date)
     const ids = onWord(achievements, {
       length: word.length, golden, base, combo: COMBO_MULTIPLIERS[this.comboIndex],
-      hour: playedAt.getHours(), score: this.score, perfect: this.perfect,
+      hour: playedAt.getHours(), score: this.score, perfect,
     })
     const difficultyCount = achievements.difficulties.length
     if (!bonus && this.canAdvance) {
@@ -591,12 +598,12 @@ export class AnagramGame {
     this.app.tweens.from(chip, { alpha: 0 }, { duration: this.fx.duration(260) })
     this.fx.fly(new WordChip(word, bonus, golden), 200 - chip.width / 2, this.inputY - 16,
       16 + chip.position.x, this.listY + chip.position.y)
-    this.fx.flash(this.updateProgress(word.length))
+    if (!rare) this.fx.flash(this.updateProgress(word.length))
     this.fx.points(`+${points}`, golden ? theme.hint : theme.correct)
     if (golden || special) this.fx.burst(200, this.inputY, golden)
     this.vibrate(special ? [10, 40, 10] : 10)
     this.sound.play(special || golden ? [523, 659, 784, 1047] : [440, 554, 659])
-    this.feedback(this.perfect ? 'Идеально! +100' : base ? `БАЗА! +${points}`
+    this.feedback(perfect ? 'Идеально! +100' : base ? `БАЗА! +${points}` : rare ? `Редкое слово! +${points}`
       : special ? `ОГО! +${points}` : golden ? `Золотое слово! +${points}` : `+${points}`, golden ? theme.hint : theme.correct)
     if (!bonus && this.canAdvance) {
       for (const row of this.progress.values()) this.fx.flash(row)
@@ -606,7 +613,7 @@ export class AnagramGame {
   }
 
   private updateProgress(length: number): Object2D {
-    return this.progress.get(length)!.update([...this.found]
+    return this.progress.get(length)!.update(this.foundCommon
       .filter(word => word.length === length).map(word => this.golden.has(word)))
   }
 
@@ -705,7 +712,7 @@ export class AnagramGame {
   private showResult(): void {
     this.resetScreen('result')
     const { words } = this.level
-    const found = [...this.found]
+    const found = this.foundCommon
     const issue = this.date ? dailyNumber(this.date) : undefined
     const modeLabel = issue ? `Слово дня #${issue}` : this.themedMode?.label ?? `${this.settings.length} букв`
     const stars = resultStars(found.length, words.length, this.goal)
