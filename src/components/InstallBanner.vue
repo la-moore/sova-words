@@ -1,17 +1,22 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { APP_ICON_URL } from '../utils/assets'
 
-const platform = ref<'iphone' | 'android'>('iphone')
-const steps = {
-  iphone: ['Safari', '«Поделиться»', '«На экран Домой»', '«Добавить»'],
-  android: ['Chrome', '⋮', '«Добавить на главный экран»', '«Установить»'],
-}
+type Platform = 'iphone' | 'android'
+
+const platforms: { id: Platform; label: string; steps: string[] }[] = [
+  { id: 'iphone', label: 'iPhone', steps: ['Safari', '«Поделиться»', '«На экран Домой»', '«Добавить»'] },
+  { id: 'android', label: 'Android', steps: ['Chrome', '⋮', '«Добавить на главный экран»', '«Установить»'] },
+]
+
+const platform = ref<Platform>('iphone')
+const steps = computed(() => platforms.find(({ id }) => id === platform.value)!.steps)
 </script>
 
 <template>
   <section class="install-banner" aria-labelledby="install-title">
     <div class="install-hero">
-      <img :src="'./icons/sova-192.png'" alt="" width="72" height="72">
+      <img :src="APP_ICON_URL" alt="" width="72" height="72">
       <div>
         <span class="install-kicker">Приложение</span>
         <h2 id="install-title">Sova на главном экране</h2>
@@ -19,11 +24,16 @@ const steps = {
       </div>
     </div>
     <div class="install-tabs" role="group" aria-label="Платформа">
-      <button type="button" :aria-pressed="platform === 'iphone'" @click="platform = 'iphone'">iPhone</button>
-      <button type="button" :aria-pressed="platform === 'android'" @click="platform = 'android'">Android</button>
+      <button
+        v-for="option in platforms"
+        :key="option.id"
+        type="button"
+        :aria-pressed="platform === option.id"
+        @click="platform = option.id"
+      >{{ option.label }}</button>
     </div>
     <ol class="install-steps">
-      <li v-for="step in steps[platform]" :key="step">{{ step }}</li>
+      <li v-for="step in steps" :key="step">{{ step }}</li>
     </ol>
     <p v-if="platform === 'iphone'" class="install-note">Перед добавлением включите «Открыть как веб-приложение».</p>
   </section>

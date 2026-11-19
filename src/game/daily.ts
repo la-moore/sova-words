@@ -1,11 +1,8 @@
 import type { AchievementId } from './achievements'
-import { readStorage, writeStorage } from './rules'
+import { loadPlayer, updatePlayer, type PlayerData } from './storage'
 
 const LAUNCH = '2026-11-18'
 const DAY_MS = 86_400_000
-const DAILY_KEY = 'cynfas-anagram-daily'
-const DAILY_BEST_KEY = 'cynfas-anagram-daily-best'
-const STREAK_KEY = 'cynfas-anagram-streak'
 
 export interface Streak {
   current: number
@@ -73,13 +70,11 @@ export function recordStreak(streak: Streak, date: string): Streak {
 }
 
 export function loadStreak(): Streak {
-  return readStorage(STREAK_KEY, { current: 0, best: 0, lastDate: '', freezeUsedWeek: '' })
+  return loadPlayer().streak
 }
 
 export function completeDaily(date: string): Streak {
-  const streak = recordStreak(loadStreak(), date)
-  writeStorage(STREAK_KEY, streak)
-  return streak
+  return updatePlayer(data => { data.streak = recordStreak(data.streak, date) }).streak
 }
 
 export function activeStreak(streak: Streak, date: string): number {
@@ -89,23 +84,31 @@ export function activeStreak(streak: Streak, date: string): number {
     ? streak.current : 0
 }
 
+/** Progress on the word of `date`, if the saved one is for that day. */
+export function dailyOn({ daily }: Pick<PlayerData, 'daily'>, date: string): DailyProgress | undefined {
+  return daily?.date === date ? daily : undefined
+}
+
+/** Best daily score, counting the day in progress. */
+export function dailyBestOf({ daily, dailyBest }: Pick<PlayerData, 'daily' | 'dailyBest'>): number {
+  return Math.max(dailyBest, daily?.score ?? 0)
+}
+
 export function loadDaily(date: string): DailyProgress | undefined {
-  const state = readStorage<DailyProgress | null>(DAILY_KEY, null)
-  return state?.date === date ? state : undefined
+  return dailyOn(loadPlayer(), date)
 }
 
 export function loadDailyBest(): number {
-  const progress = readStorage<DailyProgress | null>(DAILY_KEY, null)
-  return Math.max(readStorage(DAILY_BEST_KEY, 0), progress?.score ?? 0)
+  return dailyBestOf(loadPlayer())
 }
 
 export function saveDaily(progress: DailyProgress): void {
-  const previous = readStorage<DailyProgress | null>(DAILY_KEY, null)
+  const previous = loadPlayer().daily
   if (!previous || previous.date <= progress.date && !(previous.date === progress.date && previous.finished)) {
-    const best = readStorage(DAILY_BEST_KEY, 0)
-    const nextBest = Math.max(best, previous?.score ?? 0, progress.score)
-    if (nextBest > best) writeStorage(DAILY_BEST_KEY, nextBest)
-    writeStorage(DAILY_KEY, progress)
+    updatePlayer(data => {
+      data.dailyBest = Math.max(data.dailyBest, previous?.score ?? 0, progress.score)
+      data.daily = progress
+    })
   }
 }
 

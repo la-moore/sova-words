@@ -3,13 +3,14 @@ import { Application, Easing, MaskNode, Object2D, RectShape, type KeyboardEventD
 import { activeStreak, completeDaily, dailyNumber, dailyRandom, loadDaily, loadDailyBest, loadStreak, localDate, saveDaily } from './daily'
 import { Effects } from './fx'
 import { GameBackdrop, GlassRect } from './glass'
-import { COMBO_MS, COMBO_MULTIPLIERS, readStorage, wordPoints, writeStorage } from './rules'
+import { COMBO_MS, COMBO_MULTIPLIERS, wordPoints } from './rules'
 import { gridRows, resultStars } from './share'
 import { encodeSeed, resolveSeed, seededLayout, themeMode } from './seed'
 import { loadLevel, saveLevel } from './session'
 import type { PlayerResult } from './result'
 import { type IconName } from './icons'
 import { GameSound } from './sound'
+import { loadPlayer, onPlayerChange, toggleSetting, updatePlayer } from './storage'
 import { applyTheme, theme } from './theme'
 import { blockRadius, Button, Counter, glassSurface, label, LengthProgress, LetterKey, panel, Tile, WordChip } from './ui'
 import { DIFFICULTIES, THEMED_MODES, generateLevel, levelFromWord, loadDictionary, normalize, shuffled, type Level } from './words'
@@ -27,8 +28,6 @@ const PROGRESS_Y = 62
 const PROGRESS_PADDING = 8
 const PROGRESS_ROW_HEIGHT = 24
 const BASE_LIST_BOTTOM = 424
-export const BEST_KEY = 'cynfas-anagram-best'
-const VIBRATION_KEY = 'cynfas-anagram-vibration'
 
 type ThemedMode = typeof THEMED_MODES[number]
 
@@ -36,7 +35,8 @@ interface Hint { word: string; count: number }
 
 export class AnagramGame {
   private readonly sound = new GameSound()
-  private vibrationEnabled = readStorage(VIBRATION_KEY, true)
+  private vibrationEnabled = loadPlayer().settings.vibration
+  private readonly stopSettingsSync = onPlayerChange(({ settings }) => { this.vibrationEnabled = settings.vibration })
   private readonly used = DIFFICULTIES.map(() => new Set<string>())
   private screen = new Object2D()
   private fx!: Effects
@@ -107,6 +107,14 @@ export class AnagramGame {
     app.onTick(dt => this.tick(dt))
   }
 
+  /** Releases listeners and audio; the Application itself is destroyed by its owner. */
+  dispose(): void {
+    this.leave()
+    this.stopSettingsSync()
+    this.sound.dispose()
+    this.app.canvas.removeEventListener('wheel', this.onWheel)
+  }
+
   leave(): void {
     this.loadingRequest++
     this.themedMode = undefined
@@ -128,10 +136,7 @@ export class AnagramGame {
 
   toggleSound(): void { this.sound.toggle() }
 
-  toggleVibration(): void {
-    this.vibrationEnabled = !this.vibrationEnabled
-    writeStorage(VIBRATION_KEY, this.vibrationEnabled)
-  }
+  toggleVibration(): void { toggleSetting('vibration') }
 
   playAchievementSound(): void {
     this.sound.play([523, 659, 784, 1047, 1319])
@@ -666,26 +671,18 @@ export class AnagramGame {
     this.enter.setIcon(next ? 'arrow' : 'check')
   }
 
+  private get recordKey(): string {
+    return this.themedMode?.palette ?? String(this.settings.length)
+  }
+
   private bestScore(): number {
     if (this.date) return loadDailyBest()
-    if (this.themedMode) return readStorage(this.themedMode.bestKey, 0)
-    const best = readStorage<Record<string, number> | number>(BEST_KEY, {})
-    return typeof best === 'number' ? (this.settings.length === 5 ? best : 0) : best[this.settings.length] ?? 0
+    return loadPlayer().records[this.recordKey] ?? 0
   }
 
   private updateBest(): void {
-    if (this.date) return
-    if (this.themedMode) {
-      const { bestKey } = this.themedMode
-      if (this.score > readStorage(bestKey, 0)) writeStorage(bestKey, this.score)
-      return
-    }
-    const old = readStorage<Record<string, number> | number>(BEST_KEY, {})
-    const best = typeof old === 'number' ? { '5': old } as Record<string, number> : old
-    if (this.score > (best[this.settings.length] ?? 0)) {
-      best[this.settings.length] = this.score
-      writeStorage(BEST_KEY, best)
-    }
+    if (this.date || this.score <= this.bestScore()) return
+    updatePlayer(data => { data.records[this.recordKey] = this.score })
   }
 
   private saveProgress(finished = false): void {

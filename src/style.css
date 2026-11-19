@@ -73,7 +73,7 @@ html.playing { background-image: none; }
 
 .home-header, .home-controls { display: flex; align-items: center; gap: .65rem; }
 .home-header { gap: 1rem; }
-.home-header img { border-radius: 1rem; }
+.home-header img { position: relative; top: 4px; border-radius: 1rem; }
 .home-header { margin-bottom: .35rem; }
 .home h1, .home p, .home-header p { margin: 0; }
 .home-header .home-header-name { margin: 0; color: inherit; font-size: 2rem; font-weight: 700; line-height: 1; }
@@ -191,7 +191,12 @@ html.playing { background-image: none; }
   text-align: center;
 }
 .achievement-dialog::backdrop { background: #170f18d9; }
-.achievement-dialog .achievement-close { position: absolute; right: .65rem; top: .65rem; z-index: 1; }
+.achievement-dialog .achievement-close {
+  position: absolute; right: .65rem; top: .65rem; z-index: 1;
+  display: grid; place-items: center;
+  width: 2.75rem; height: 2.75rem; min-height: 0; padding: 0;
+}
+.achievement-dialog .achievement-close svg { display: block; width: 1.25rem; height: 1.25rem; }
 .achievement-dialog h2 { font-size: 1.4rem; }
 .achievement-dialog .achievement-new { margin: .25rem 2.75rem 0; color: #ffd5a9; font-weight: 700; }
 .achievement-dialog .achievement-date { margin-top: 1rem; font-size: .85rem; }

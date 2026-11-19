@@ -1,5 +1,5 @@
-import { loadStreak, localDate } from './daily'
-import { readStorage, writeStorage } from './rules'
+import { localDate } from './daily'
+import { loadPlayer, updatePlayer } from './storage'
 import type { BadgeSpec } from '../badges/bake'
 import feather from '@scarlab-icons/icons/solid/pencil-feather.svg?raw'
 import sparkles from '@scarlab-icons/icons/solid/sparkles.svg?raw'
@@ -15,6 +15,7 @@ import layers from '@scarlab-icons/icons/solid/layers-3.svg?raw'
 import gift from '@scarlab-icons/icons/outline/gift.svg?raw'
 import crown from '@scarlab-icons/icons/solid/crown.svg?raw'
 import moon from '@scarlab-icons/icons/solid/moon.svg?raw'
+import secretGlyph from '@scarlab-icons/icons/base/help-lg.svg?raw'
 
 type AchievementDefinition = {
   title: string
@@ -57,10 +58,12 @@ export interface AchievementState {
   difficulties: number[]
 }
 
-const STORAGE_KEY = 'cynfas-anagram-achievements'
+function readAchievements(): AchievementState {
+  return loadPlayer().achievements
+}
 
-function readAchievements() {
-  return readStorage<AchievementState>(STORAGE_KEY, { unlocked: {}, difficulties: [] })
+function saveAchievements(state: AchievementState) {
+  updatePlayer(data => { data.achievements = state })
 }
 
 function streakAwards(streak: number): AchievementId[] {
@@ -71,11 +74,22 @@ function streakAwards(streak: number): AchievementId[] {
   ]
 }
 
-export function loadAchievements(date = localDate()) {
-  const state = readAchievements()
-  const streak = loadStreak()
+/** Reads the saved state, first granting streak awards earned before they existed. */
+export function loadAchievements(date = localDate()): AchievementState {
+  const { achievements: state, streak } = loadPlayer()
   unlock(state, streakAwards(streak.best), streak.lastDate || date)
   return state
+}
+
+/** How a badge is shown: secret ones keep their name and glyph hidden until earned. */
+export function displayedAchievement(award: Achievement, locked: boolean): Achievement {
+  if (!award.secret || !locked) return award
+  return {
+    ...award,
+    title: '???',
+    description: 'Секретная ачивка.',
+    badge: { ...award.badge, id: `${award.id}-secret`, glyph: secretGlyph },
+  }
 }
 
 function lockedIds(state: AchievementState, rules: Partial<Record<AchievementId, boolean>>) {
@@ -134,7 +148,7 @@ export function unlock(state: AchievementState, ids: readonly AchievementId[], d
     state.unlocked[id] = { at: date, seen: false }
     changed = true
   }
-  if (changed) writeStorage(STORAGE_KEY, state)
+  if (changed) saveAchievements(state)
 }
 
 export function unseen(state: AchievementState): AchievementId[] {
@@ -151,6 +165,6 @@ export function markSeen(ids: readonly AchievementId[]): AchievementState {
       changed = true
     }
   }
-  if (changed) writeStorage(STORAGE_KEY, state)
+  if (changed) saveAchievements(state)
   return state
 }

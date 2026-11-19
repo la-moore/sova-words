@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, expect, it } from 'vitest'
 import { achievements, loadAchievements, markSeen, onLevelComplete, onWord, unseen, unlock, type AchievementState } from '../src/game/achievements'
+import { updatePlayer } from '../src/game/storage'
 
 const empty = (): AchievementState => ({ unlocked: {}, difficulties: [] })
 afterEach(() => localStorage.clear())
@@ -25,7 +26,7 @@ it('tracks distinct regular difficulties and evaluates themed, daily and no-hint
 })
 
 it('persists dates and acknowledgement, and grants old streak awards once', () => {
-  localStorage.setItem('cynfas-anagram-streak', JSON.stringify({ best: 30 }))
+  updatePlayer(data => { data.streak.best = 30 })
   const state = loadAchievements('2026-11-18')
   expect(achievements).toHaveLength(14)
   expect(unseen(state)).toEqual(['daily', 'streak-7', 'streak-30'])

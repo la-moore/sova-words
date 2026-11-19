@@ -4,12 +4,12 @@ import { Application } from '@cynfas/core'
 import { createApp, nextTick } from 'vue'
 import { createMemoryHistory } from 'vue-router'
 import App from '../src/App.vue'
-import Home from '../src/Home.vue'
-import { createGameRouter } from '../src/routes'
+import { createGameRouter } from '../src/router'
 import { encodeChallenge } from '../src/game/share'
 import { encodeSeed, seededLayout } from '../src/game/seed'
 import { levelFromWord, loadDictionary } from '../src/game/words'
 import { dailyNumber, localDate } from '../src/game/daily'
+import { updatePlayer } from '../src/game/storage'
 
 vi.mock('../src/badges/bake', async importOriginal => ({
   ...await importOriginal<typeof import('../src/badges/bake')>(),
@@ -19,7 +19,7 @@ vi.mock('../src/badges/bake', async importOriginal => ({
 it('navigates from the home screen through a shared level and continues the run', async () => {
   const container = document.createElement('div')
   document.body.append(container)
-  const router = createGameRouter(createMemoryHistory(), Home)
+  const router = createGameRouter(createMemoryHistory())
   const context = vi.spyOn(HTMLCanvasElement.prototype, 'getContext')
     .mockReturnValue({ measureText: (text: string) => ({ width: text.length * 8 }) } as CanvasRenderingContext2D)
   const start = vi.spyOn(Application.prototype, 'start').mockImplementation(function (this: Application) {
@@ -59,9 +59,7 @@ it('navigates from the home screen through a shared level and continues the run'
     expect(gameHost.hidden).toBe(false)
     expect(document.documentElement.classList.contains('playing')).toBe(true)
 
-    localStorage.setItem('cynfas-anagram-streak', JSON.stringify({
-      current: 0, best: 7, lastDate: '', freezeUsedWeek: '',
-    }))
+    updatePlayer(data => { data.streak = { current: 0, best: 7, lastDate: '', freezeUsedWeek: '' } })
     router.back()
     await vi.waitFor(() => expect(container.textContent).toContain('Ачивки · 2/14'))
     expect(gameHost.hidden).toBe(true)
@@ -166,8 +164,7 @@ it('navigates from the home screen through a shared level and continues the run'
     await router.push(`/c/${code}`)
     expect(path()).toBe('/')
   } finally {
-    localStorage.removeItem('cynfas-anagram-streak')
-    localStorage.removeItem('cynfas-anagram-achievements')
+    localStorage.clear()
     sessionStorage.clear()
     copy.mockRestore()
     app.unmount()

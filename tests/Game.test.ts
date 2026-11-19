@@ -6,6 +6,7 @@ import { AnagramGame, DESIGN } from '../src/game/Game'
 import type { PlayerResult } from '../src/game/result'
 import { dailyRandom, loadDaily, localDate } from '../src/game/daily'
 import { GameBackdrop, GlassRect } from '../src/game/glass'
+import { loadPlayer, updatePlayer } from '../src/game/storage'
 import { Button, Counter, Tile } from '../src/game/ui'
 import { generateLevel, levelFromWord, loadDictionary, THEMED_MODES } from '../src/game/words'
 
@@ -144,7 +145,7 @@ it('vibrates for touch keys and accepted words with sound off and remembers the 
   const vibrate = vi.fn(() => true)
   Object.defineProperty(navigator, 'vibrate', { configurable: true, value: vibrate })
   try {
-    localStorage.setItem('cynfas-anagram-sound', 'false')
+    updatePlayer(data => { data.settings.sound = false })
     startGame()
     void game.begin(1, localDate())
     await vi.waitFor(() => expect(labels(app!.scene)).toContain('Цель уровня · 8'))
@@ -330,8 +331,8 @@ it('plays festive levels from the menu and stores a separate record', async () =
 
   for (const letter of first!) key(letter)
   key('Enter')
-  expect(Number(localStorage.getItem('cynfas-anagram-new-year-best'))).toBeGreaterThan(0)
-  expect(localStorage.getItem('cynfas-anagram-best')).toBeNull()
+  expect(loadPlayer().records).toEqual({ newYear: expect.any(Number) })
+  expect(loadPlayer().records.newYear).toBeGreaterThan(0)
   expect(loadDaily(localDate())).toBeUndefined()
 
   const played = new Set<string>()
@@ -368,7 +369,7 @@ it.each([
   [THEMED_MODES[5], ['ТРОМБОН', 'СКРИПКА', 'ГАРМОНЬ', 'КОНЦЕРТ', 'АККОРД', 'СОНАТА']],
 ] as const)('plays the $0.label theme and saves its record', async (mode, bases) => {
   const app = startGame()
-  const { label: title, bestKey: record } = mode
+  const { label: title, palette } = mode
   void game.begin(1, '', mode)
   await vi.waitFor(() => expect(labels(app.scene)).toContain(`${title} · Ур. 1`))
 
@@ -381,9 +382,8 @@ it.each([
     for (const letter of word) key(letter)
     key('Enter')
   }
-  expect(Number(localStorage.getItem(record))).toBeGreaterThan(0)
-  expect(localStorage.getItem('cynfas-anagram-new-year-best')).toBeNull()
-  expect(localStorage.getItem('cynfas-anagram-best')).toBeNull()
+  expect(Object.keys(loadPlayer().records)).toEqual([palette])
+  expect(loadPlayer().records[palette]).toBeGreaterThan(0)
   key('Enter')
   expect(result?.awards).toContain('themed')
   game.continueLevel()

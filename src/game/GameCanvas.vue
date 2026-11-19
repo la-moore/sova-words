@@ -1,20 +1,21 @@
 <script setup lang="ts">
 import { Application } from '@cynfas/core'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, useTemplateRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { levelPath, resultPath } from '../routes'
+import { homePath, levelPath, resultPath } from '../paths'
+import { useGameStore } from '../stores/game'
 import { challengeTheme } from './challenge'
-import { applyTheme } from './theme'
-import { AnagramGame, DESIGN } from './Game'
-import type { PlayerResult } from './result'
 import { localDate } from './daily'
+import { AnagramGame, DESIGN } from './Game'
 import { registerGlass } from './glass'
+import { applyTheme } from './theme'
 
-const emit = defineEmits<{ ready: [game: AnagramGame]; result: [result?: PlayerResult] }>()
+/** Hosts the canvas game and keeps it in step with the route: game routes play, other pages hide it. */
 const route = useRoute()
 const router = useRouter()
-const host = ref<HTMLDivElement>()
-const probe = ref<HTMLDivElement>()
+const store = useGameStore()
+const host = useTemplateRef('host')
+const probe = useTemplateRef('probe')
 const playing = computed(() => route.meta.difficulty !== undefined)
 
 let app: Application
@@ -83,28 +84,33 @@ function updateScene() {
   app.start()
 }
 
+/** Back to the menu: step back when the menu is the previous page, so history does not grow. */
+function goToMenu() {
+  if (router.options.history.state.back === homePath) router.back()
+  else void router.replace(homePath)
+}
+
 onMounted(() => {
   app = new Application({ container: host.value!, designSize: DESIGN, autoStart: false })
   // Application keeps this fit private; replace it so every resize respects the safe area.
   Object.assign(app, { _fitViewport: fitSafeArea })
   fitSafeArea()
   registerGlass(app.renderer)
-  game = new AnagramGame(app, () => {
-    if (router.options.history.state.back === '/') router.back()
-    else void router.replace('/')
-  }, result => {
-    emit('result', result)
+  game = new AnagramGame(app, goToMenu, result => {
+    store.setResult(result)
     if (result) sync(resultPath(result.code))
   }, code => sync(levelPath(code)))
-  Object.assign(window, { app, game })
-  emit('ready', game)
+  // Handy in the console and used by the end-to-end test.
+  if (import.meta.env.DEV) Object.assign(window, { app, game })
+  store.attach(game)
   updateScene()
 })
 
 watch(() => route.fullPath, updateScene, { flush: 'post' })
 
 onBeforeUnmount(() => {
-  game.leave()
+  store.detach()
+  game.dispose()
   app.destroy()
   document.documentElement.classList.remove('playing')
 })

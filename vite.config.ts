@@ -16,8 +16,9 @@ export default defineConfig({
     async writeBundle({ dir }, bundle) {
       if (!dir) return
       const outDir = resolve(root, dir)
-      const icons = (await readdir(resolve(outDir, 'icons'))).map(file => `icons/${file}`)
-      const files = [...Object.keys(bundle), 'manifest.webmanifest', ...icons].sort()
+      // Precache everything copied from public/ (favicons, manifest, app icons), skipping dotfiles and docs.
+      const assets = (await readdir(resolve(root, 'public'))).filter(file => !file.startsWith('.') && !file.endsWith('.txt'))
+      const files = [...new Set([...Object.keys(bundle), ...assets])].sort()
       const worker = await readFile(resolve(root, 'src/service-worker.js'), 'utf8')
       const hash = createHash('sha256').update(worker).update(JSON.stringify(files))
       for (const file of files) {
